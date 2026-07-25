@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import openpyxl; wb=openpyxl.load_workbook\\('data/Scenario-2-Thread-Salt-Finance-History.xlsx'\\); print\\(wb.sheetnames\\)\")",
+      "Bash(python3 -c \"import openpyxl\")",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import openpyxl; wb=openpyxl.load_workbook\\('data/Scenario-2-Thread-Salt-Finance-History.xlsx'\\); print\\('SHEETS:', wb.sheetnames\\)\")",
+      "Bash(python3 -m pip install openpyxl -q)",
+      "Bash(python3 -)",
+      "Bash(node -e \"require\\('docx'\\); console.log\\('docx OK, version', require\\('docx/package.json'\\).version\\)\")",
+      "Bash(npm i *)",
+      "Bash(node ../scripts/build_proposal_v2.js)",
+      "Bash(node ../scripts/build_proposal_final.js)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import matplotlib; print\\('matplotlib OK'\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node bin/tas.js doctor)",
+      "Bash(node bin/tas.js run monthly --as-of 2026-08-03)",
+      "Bash(node bin/tas.js selftest)",
+      "Bash(node bin/tas.js run-all --as-of 2026-08-03)",
+      "WebSearch",
+      "Bash(node bin/tas.js run-due --as-of 2026-08-11)",
+      "Bash(node bin/tas.js run-due --as-of 2026-08-03)",
+      "Bash(node -e \"const {pdfSafe,signedPct1}=require\\('./src/format'\\); console.log\\(JSON.stringify\\(pdfSafe\\(signedPct1\\(-24.4\\)\\)\\), JSON.stringify\\(pdfSafe\\('⚠  Watch — July'\\)\\)\\)\")",
+      "Bash(node bin/tas.js run monthly --as-of 2026-08-03 --format docx)"
+    ]
+  }
+}

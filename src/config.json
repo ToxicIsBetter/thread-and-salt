@@ -1,0 +1,108 @@
+{
+  "business": {
+    "name": "Thread & Salt",
+    "currency": "GBP",
+    "fiscalYearStartMonth": 1
+  },
+  "dataSource": {
+    "provider": "fixture",
+    "fixture": {
+      "path": "data/Scenario-2-Thread-Salt-Finance-History.xlsx",
+      "grain": "month"
+    },
+    "xero": {
+      "tenantId": "",
+      "reportBasis": "ACCRUAL",
+      "grain": "day",
+      "clientIdEnv": "TAS_XERO_CLIENT_ID",
+      "clientSecretEnv": "TAS_XERO_CLIENT_SECRET",
+      "accountMap": {
+        "revenue": [
+          "200",
+          "201"
+        ],
+        "cogs": [
+          "300",
+          "310"
+        ],
+        "marketing": [
+          "400"
+        ],
+        "fulfilment": [
+          "425"
+        ],
+        "fees": [
+          "404"
+        ],
+        "founders": [
+          "477"
+        ],
+        "software": [
+          "485"
+        ]
+      }
+    }
+  },
+  "entra": {
+    "tenantId": "",
+    "clientId": "",
+    "clientSecretEnv": "TAS_GRAPH_CLIENT_SECRET",
+    "scope": "https://graph.microsoft.com/.default"
+  },
+  "deliver": {
+    "mode": "auto",
+    "email": {
+      "provider": "microsoft-graph",
+      "senderUpn": "reports@threadandsalt.example",
+      "recipients": [
+        {
+          "name": "Mara",
+          "address": "mara@threadandsalt.example"
+        },
+        {
+          "name": "Jonah",
+          "address": "jonah@threadandsalt.example"
+        }
+      ],
+      "cc": [],
+      "subjectTemplate": "Thread & Salt \u2014 {cadence} management accounts \u2014 {period}"
+    },
+    "drive": {
+      "provider": "onedrive",
+      "driveOwnerUpn": "reports@threadandsalt.example",
+      "rootFolder": "Thread & Salt Reports"
+    },
+    "format": "pdf"
+  },
+  "alerts": {
+    "to": [
+      "shyam.jagani@negativezero.com"
+    ]
+  },
+  "retry": {
+    "ingestAttempts": 3,
+    "renderAttempts": 5,
+    "fullRestarts": 2,
+    "wallClockMinutes": 20
+  },
+  "verify": {
+    "penceTolerance": 1,
+    "fixtures": {
+      "FY2024": {
+        "revenue": 588800,
+        "netProfit": 136872,
+        "netMarginPct": 23.2
+      },
+      "FY2025": {
+        "revenue": 638802,
+        "netProfit": 147823,
+        "netMarginPct": 23.1
+      },
+      "FY2026YTD": {
+        "revenue": 347342,
+        "netProfit": 76863,
+        "netMarginPct": 22.1
+      }
+    }
+  }
+}
