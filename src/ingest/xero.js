@@ -22,9 +22,11 @@ class NotConnectedError extends Error {
   }
 }
 
-const TOKEN_URL = 'https://identity.xero.com/connect/token';
-const API = 'https://api.xero.com/api.xro/2.0';
-const SCOPES = 'accounting.reports.read accounting.transactions.read accounting.settings.read';
+const DEFAULT_API = 'https://api.xero.com/api.xro/2.0';
+const { getToken, SCOPES } = require('./xero-token');
+
+/** Endpoints are overridable so the adapter can be exercised against a local mock. */
+const apiBase = (cfg) => cfg.dataSource.xero.apiBase || process.env.TAS_XERO_API_BASE || DEFAULT_API;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const P = (pounds) => Math.round(Number(pounds || 0) * 100);
@@ -45,22 +47,6 @@ function credentials(cfg) {
     );
   }
   return { clientId, clientSecret, tenantId: x.tenantId };
-}
-
-async function getToken({ clientId, clientSecret }) {
-  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ grant_type: 'client_credentials', scope: SCOPES }),
-  });
-  if (!res.ok) {
-    throw new Error(`Xero token request failed (${res.status}): ${await res.text()}`);
-  }
-  return (await res.json()).access_token;
 }
 
 /** GET with retry on 429/5xx — Xero rate-limits aggressively. */
@@ -124,7 +110,8 @@ function sumMapped(byAccount, codes, nCols) {
 
 async function pull(cfg, win, escalation = 1) {
   const creds = credentials(cfg); // throws NotConnectedError until wired up
-  const token = await getToken(creds);
+  const API = apiBase(cfg);
+  const token = await getToken({ ...creds, tokenUrl: cfg.dataSource.xero.tokenUrl });
   const map = cfg.dataSource.xero.accountMap;
 
   // Loop-A escalation ladder (see IMPLEMENTATION-PLAN §5)
@@ -132,8 +119,11 @@ async function pull(cfg, win, escalation = 1) {
   const bust = escalation >= 2 ? `&_cb=${Date.now()}` : '';
   if (escalation >= 2) await sleep(1200);
 
-  // Pull a monthly series wide enough for YoY comparisons (window + 24 months back).
-  const firstMonth = addMonths(win.months[0], -24);
+  // Pull from January two years before the window starts. A fixed 24-month lookback would
+  // leave the earliest P&L column as a part-year, which reads as a collapse in revenue when
+  // shown beside full years — so always fetch WHOLE prior years plus the current YTD.
+  const startYear = Number(win.months[0].slice(0, 4));
+  const firstMonth = `${startYear - 2}-01`;
   const lastMonth = win.months[win.months.length - 1];
   const allMonths = monthRange(firstMonth, lastMonth);
 

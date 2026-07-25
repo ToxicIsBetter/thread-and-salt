@@ -86,6 +86,41 @@ variables.
 
 ---
 
+## Part B0 — Prove the sandbox first, before any credentials exist
+
+Do this as soon as the repo is pushed — it needs **no Xero, no Entra, no network allowlist**,
+because in fixture mode the pipeline makes no outbound calls at all.
+
+The point is to de-risk the one genuine unknown: **`@napi-rs/canvas` is a native binary** used
+to render the charts. If it cannot install or run in the routine sandbox, that must surface now
+rather than on kickoff day.
+
+1. **claude.ai/code** → connect GitHub → confirm the repo is listed.
+2. **claude.ai/code/routines → New routine**, named `TEST — sandbox check`, default environment,
+   any schedule (you will trigger it manually), with this prompt:
+
+   ```
+   Verify the Thread & Salt reporting pipeline runs in this environment.
+
+   In the cloned repository, run:
+       npm ci --omit=dev
+       node bin/tas.js run monthly --as-of 2026-08-03 --dryrun
+
+   Then report: whether npm ci completed, whether GATE 1 and GATE 2 both passed and with
+   how many checks, which PDF file was produced, and the final outcome line. If anything
+   failed, paste the error verbatim. Do not edit any figures.
+   ```
+3. **Run now.**
+
+**Expected:** `GATE 1 ✓ pass (36/36)`, `GATE 2 ✓ pass (17/17, 59 figures)`, `✓ DELIVERED`, and a
+named `.pdf`. That proves clone → `npm ci` → native canvas → charts → PDF → both gates → the
+delivery code path, all in the cloud.
+
+`npm ci` requires `package-lock.json` to be committed — it is. If the canvas binary fails to
+install, stop and raise it: the charts need a non-native fallback before go-live.
+
+---
+
 ## Part B — You are now logged into their Claude account
 
 ### Step 1 — Check the plan

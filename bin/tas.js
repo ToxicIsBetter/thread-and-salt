@@ -145,6 +145,67 @@ async function main() {
       break;
     }
 
+
+    // ---------- credential helpers ----------
+    case 'test-email': {
+      // Prove mail credentials work before running a whole pipeline against them.
+      const to = args.shift();
+      const cfg = cfgLib.load();
+      const r = cfgLib.readiness(cfg);
+      const provider = r.mailProvider;
+      console.log(`\nMail provider: ${provider}   credentials present: ${r.mailCreds ? 'yes' : 'NO'}`);
+      if (!r.mailCreds) {
+        die(provider === 'smtp'
+          ? 'SMTP credentials missing. Set TAS_SMTP_USER / TAS_SMTP_PASS (+ host or preset) in .env'
+          : 'Graph credentials missing. Set entra.tenantId, entra.clientId and TAS_GRAPH_CLIENT_SECRET');
+      }
+      const recipients = to ? [cfgLib.parseRecipient(to)] : cfgLib.listRecipients(cfg);
+      const subject = `Thread & Salt — test message (${new Date().toISOString().slice(0, 16).replace('T', ' ')})`;
+      const html = '<p>This is a test from the Thread &amp; Salt reporting pipeline.</p>' +
+        '<p>If you can read this, mail delivery is working and the next report will arrive the same way.</p>';
+
+      if (provider === 'smtp') {
+        const smtp = require('../src/deliver/smtp');
+        process.stdout.write('  verifying SMTP connection… ');
+        await smtp.verify(cfg);
+        console.log('ok');
+        const res = await smtp.sendMail({ cfg, to: recipients, cc: [], subject, html });
+        console.log(`✓ sent from ${res.from} to ${recipients.map((x) => x.address).join(', ')}`);
+        if (res.rejected && res.rejected.length) console.log(`  ! rejected: ${res.rejected.join(', ')}`);
+      } else {
+        const { getToken, graphFetch } = require('../src/deliver/graph');
+        process.stdout.write('  requesting Entra token… ');
+        const token = await getToken(cfg);
+        console.log('ok');
+        await graphFetch(token, `/users/${encodeURIComponent(cfg.deliver.email.senderUpn)}/sendMail`, {
+          method: 'POST',
+          json: { message: { subject, body: { contentType: 'HTML', content: html },
+            toRecipients: recipients.map((x) => ({ emailAddress: { address: x.address } })) }, saveToSentItems: true },
+        });
+        console.log(`✓ sent from ${cfg.deliver.email.senderUpn} to ${recipients.map((x) => x.address).join(', ')}`);
+      }
+      break;
+    }
+
+    case 'xero-accounts': {
+      // Lists the chart of accounts so the accountMap can be filled in from reality
+      // rather than guessed — this is the main risk to the first report being right.
+      const cfg = cfgLib.load();
+      const { getTokenForList, listAccounts } = require('../src/ingest/xero-accounts');
+      const accounts = await listAccounts(cfg);
+      console.log(`\n${accounts.length} accounts in the Xero chart of accounts:\n`);
+      const groups = {};
+      for (const a of accounts) {
+        (groups[a.type] = groups[a.type] || []).push(a);
+      }
+      for (const type of Object.keys(groups).sort()) {
+        console.log(`  ${type}`);
+        for (const a of groups[type]) console.log(`     ${String(a.code || '—').padEnd(8)} ${a.name}`);
+      }
+      console.log('\nPut the relevant codes into dataSource.xero.accountMap in src/config.json.');
+      break;
+    }
+
     // ---------- diagnostics ----------
     case 'doctor': {
       const cfg = cfgLib.load();
@@ -153,7 +214,12 @@ async function main() {
       console.log(`\n${cfg.business.name} — reporting pipeline status\n`);
       console.log(`  data source            ${cfg.dataSource.provider}${cfg.dataSource.provider === 'fixture' ? '  (workbook — live Xero pending)' : ''}`);
       console.log(`  ${tick(r.xeroReady)} Xero connected        ${r.xeroReady ? 'yes' : 'not yet — set dataSource.xero.tenantId + $TAS_XERO_CLIENT_ID/$TAS_XERO_CLIENT_SECRET'}`);
-      console.log(`  ${tick(r.graphCreds)} Entra / Graph creds   ${r.graphCreds ? 'yes' : `not yet — set entra.tenantId, entra.clientId, $${cfg.entra.clientSecretEnv}`}`);
+      console.log(`  mail provider          ${r.mailProvider}`);
+      if (r.mailProvider === 'smtp') {
+        console.log(`  ${tick(r.smtpCreds)} SMTP credentials      ${r.smtpCreds ? `yes (${process.env.TAS_SMTP_USER})` : 'not yet — set TAS_SMTP_USER / TAS_SMTP_PASS (+ host or preset) in .env'}`);
+      } else {
+        console.log(`  ${tick(r.graphCreds)} Entra / Graph creds   ${r.graphCreds ? 'yes' : `not yet — set entra.tenantId, entra.clientId, $${cfg.entra.clientSecretEnv}`}`);
+      }
       console.log(`  ${tick(r.realSender)} sending mailbox       ${cfg.deliver.email.senderUpn}`);
       console.log(`  ${tick(r.realRecipients)} recipients            ${cfg.deliver.email.recipients.map((x) => x.address).join(', ')}`);
       console.log(`  ${tick(true)} drive target          /${cfg.deliver.drive.rootFolder} (${cfg.deliver.drive.provider}, owner ${cfg.deliver.drive.driveOwnerUpn})`);
@@ -166,6 +232,14 @@ async function main() {
 
     case 'selftest': {
       await require('../src/selftest').selftest();
+      break;
+    }
+
+    case 'xero-selftest': {
+      // Exercises the Xero adapter against a local mock — no Xero account required.
+      const { spawnSync } = require('child_process');
+      const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'test', 'xero-adapter.test.js')], { stdio: 'inherit' });
+      process.exitCode = r.status || 0;
       break;
     }
 
@@ -189,8 +263,11 @@ tas — Thread & Salt automated management accounts
   tas sender <email>           the Entra mailbox reports send FROM
   tas drive-owner <email>      whose drive stores the archive
 
+  tas test-email [address]     send a test message to prove mail credentials work
+  tas xero-accounts            list the Xero chart of accounts (to fill in accountMap)
   tas doctor                   what's wired up, what's still pending
   tas selftest                 fault-inject the verification loops
+  tas xero-selftest            prove the Xero adapter against a local mock (no Xero needed)
 `);
   }
 }

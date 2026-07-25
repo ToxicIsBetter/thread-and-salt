@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+require('./env').loadEnv(ROOT); // pick up the git-ignored .env before anything reads process.env
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
 function load() {
@@ -100,9 +101,14 @@ function readiness(cfg) {
   const placeholder = (a) => /example\.com|example$|\.example$/i.test(String(a));
   const graphCreds =
     !!cfg.entra.tenantId && !!cfg.entra.clientId && !!process.env[cfg.entra.clientSecretEnv];
+  const smtpCreds = !!process.env.TAS_SMTP_USER && !!process.env.TAS_SMTP_PASS &&
+    (!!process.env.TAS_SMTP_HOST || !!(cfg.deliver.email.smtp && (cfg.deliver.email.smtp.host || cfg.deliver.email.smtp.preset)));
+  const provider = cfg.deliver.email.provider || 'microsoft-graph';
+  const mailCreds = provider === 'smtp' ? smtpCreds : graphCreds;
   const recips = cfg.deliver.email.recipients;
   const realRecipients = recips.length > 0 && recips.every((r) => !placeholder(r.address));
-  const realSender = !!cfg.deliver.email.senderUpn && !placeholder(cfg.deliver.email.senderUpn);
+  const senderish = cfg.deliver.email.senderUpn || process.env.TAS_SMTP_FROM || process.env.TAS_SMTP_USER;
+  const realSender = !!senderish && !placeholder(senderish);
 
   const xero = cfg.dataSource;
   const xeroReady =
@@ -112,15 +118,18 @@ function readiness(cfg) {
 
   return {
     graphCreds,
+    smtpCreds,
+    mailProvider: provider,
+    mailCreds,
     realRecipients,
     realSender,
-    emailReady: graphCreds && realRecipients && realSender,
+    emailReady: mailCreds && realRecipients && realSender,
     xeroReady,
     dataProvider: cfg.dataSource.provider,
     effectiveDeliveryMode:
       cfg.deliver.mode === 'live' || cfg.deliver.mode === 'dryrun'
         ? cfg.deliver.mode
-        : graphCreds && realRecipients && realSender
+        : mailCreds && realRecipients && realSender
         ? 'live'
         : 'dryrun',
   };

@@ -2,7 +2,20 @@
   "dependencies": {
     "@napi-rs/canvas": "^1.0.2",
     "docx": "^9.7.1",
+    "nodemailer": "^9.0.3",
     "pdfkit": "^0.19.1",
     "xlsx": "^0.18.5"
+  },
+  "name": "thread-and-salt-reports",
+  "version": "1.0.0",
+  "description": "Automated management accounts for Thread & Salt \u2014 Xero to inbox, verified end to end.",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node bin/tas.js selftest && node test/xero-adapter.test.js",
+    "doctor": "node bin/tas.js doctor",
+    "report": "node bin/tas.js run-due"
   }
 }

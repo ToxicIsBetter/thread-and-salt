@@ -1,3 +1,6 @@
 node_modules/
 output/
 *.pdf
+.env
+.env.*
+!.env.example

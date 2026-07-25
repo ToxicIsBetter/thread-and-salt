@@ -22,7 +22,19 @@
       "Bash(node bin/tas.js run-due --as-of 2026-08-11)",
       "Bash(node bin/tas.js run-due --as-of 2026-08-03)",
       "Bash(node -e \"const {pdfSafe,signedPct1}=require\\('./src/format'\\); console.log\\(JSON.stringify\\(pdfSafe\\(signedPct1\\(-24.4\\)\\)\\), JSON.stringify\\(pdfSafe\\('⚠  Watch — July'\\)\\)\\)\")",
-      "Bash(node bin/tas.js run monthly --as-of 2026-08-03 --format docx)"
+      "Bash(node bin/tas.js run monthly --as-of 2026-08-03 --format docx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://api.github.com/repos/ToxicIsBetter/thread-and-salt)",
+      "Bash(gh auth *)",
+      "Bash(GIT_TERMINAL_PROMPT=0 timeout 10 git ls-remote origin)",
+      "Bash(node bin/tas.js test-email shyam.jagani@negativezero.com)",
+      "Bash(node -e \"require\\('./src/ingest/xero'\\); require\\('./src/ingest/xero-accounts'\\); console.log\\('modules ok'\\)\")",
+      "Bash(node test/xero-adapter.test.js)",
+      "Bash(node bin/tas.js xero-selftest)",
+      "Bash(git check-ignore *)",
+      "Bash(timeout 90 node bin/tas.js test-email)",
+      "Bash(timeout 180 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
+      "Bash(git add *)",
+      "Bash(git -c 'user.name=Shyam Jagani' -c user.email=shyam.jagani@negativezero.com commit -q -m ' *)"
     ]
   }
 }

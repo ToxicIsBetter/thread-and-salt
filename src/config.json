@@ -53,7 +53,6 @@
     "mode": "auto",
     "email": {
       "provider": "microsoft-graph",
-      "senderUpn": "reports@threadandsalt.example",
       "recipients": [
         {
           "name": "Mara",
@@ -65,12 +64,20 @@
         }
       ],
       "cc": [],
-      "subjectTemplate": "Thread & Salt \u2014 {cadence} management accounts \u2014 {period}"
+      "subjectTemplate": "Thread & Salt \u2014 {cadence} management accounts \u2014 {period}",
+      "smtp": {
+        "preset": "microsoft-365",
+        "host": "smtp.office365.com",
+        "port": 587,
+        "_note": "Fallback transport. Used only when deliver.email.provider = \"smtp\". Graph is the production path; SMTP exists for tenants where an app registration is not possible."
+      },
+      "senderUpn": "reports@threadandsalt.example"
     },
     "drive": {
       "provider": "onedrive",
       "driveOwnerUpn": "reports@threadandsalt.example",
-      "rootFolder": "Thread & Salt Reports"
+      "rootFolder": "Thread & Salt Reports",
+      "_note": "Set provider to \"local\" with localPath to archive into a synced folder instead."
     },
     "format": "pdf"
   },

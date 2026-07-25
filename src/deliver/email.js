@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getToken, graphFetch } = require('./graph');
+const smtpLib = require('./smtp');
 const { gbp, signedPct1, pct1 } = require('../format');
 
 function subjectFor(cfg, model) {
@@ -90,6 +91,20 @@ async function sendReport({ cfg, model, signals, file, mode, outDir }) {
     return { channel: 'email', mode: 'dryrun', preview, ...meta };
   }
 
+  // ---- SMTP path ----
+  if ((email.provider || 'microsoft-graph') === 'smtp') {
+    const res = await smtpLib.sendMail({
+      cfg, to: email.recipients, cc: email.cc, subject, html, attachmentPath: file,
+    });
+    return {
+      channel: 'email', mode: 'live', transport: 'smtp',
+      sentFrom: res.from, to: email.recipients.map((r) => r.address),
+      subject, attachment: attachmentName, messageId: res.messageId,
+      rejected: res.rejected && res.rejected.length ? res.rejected : undefined,
+    };
+  }
+
+  // ---- Microsoft Graph path ----
   const token = await getToken(cfg);
   const contentBytes = fs.readFileSync(file).toString('base64');
   await graphFetch(token, `/users/${encodeURIComponent(email.senderUpn)}/sendMail`, {
@@ -118,6 +133,7 @@ async function sendReport({ cfg, model, signals, file, mode, outDir }) {
   return {
     channel: 'email',
     mode: 'live',
+    transport: 'microsoft-graph',
     sentFrom: email.senderUpn,
     to: email.recipients.map((r) => r.address),
     subject,

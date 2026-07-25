@@ -25,6 +25,18 @@ async function saveReport({ cfg, model, file, mode, outDir }) {
   const segments = folderPathFor(cfg, model);
   const name = path.basename(file);
 
+  // ---- local folder archive (e.g. a synced OneDrive/Dropbox folder on disk) ----
+  // Useful when Graph file permissions aren't available: the sync client does the upload.
+  if ((cfg.deliver.drive.provider || 'onedrive') === 'local') {
+    const base = cfg.deliver.drive.localPath;
+    if (!base) throw new Error('deliver.drive.provider is "local" but deliver.drive.localPath is not set');
+    const dir = path.resolve(base.replace(/^~/, process.env.HOME || '~'), ...segments);
+    fs.mkdirSync(dir, { recursive: true });
+    const dest = path.join(dir, name);
+    fs.copyFileSync(file, dest);
+    return { channel: 'drive', mode: 'live', transport: 'local', path: dest };
+  }
+
   if (mode !== 'live') {
     const dir = path.join(outDir, 'drive', ...segments);
     fs.mkdirSync(dir, { recursive: true });
