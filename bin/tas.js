@@ -197,6 +197,27 @@ async function main() {
       break;
     }
 
+    case 'xero-connect': {
+      // Discover which organisation the credentials are authorised against, and save its id.
+      const cfg = cfgLib.load();
+      const { listConnections } = require('../src/ingest/xero-connections');
+      const conns = await listConnections(cfg);
+      if (conns.length === 0) {
+        die('The credentials authenticated, but no organisation is connected. In Xero, authorise the Custom Connection against the organisation.');
+      }
+      console.log(`\n${conns.length} connected organisation(s):\n`);
+      for (const c of conns) console.log(`  ${c.tenantName}  [${c.tenantType}]\n    ${c.tenantId}`);
+      if (conns.length === 1) {
+        cfg.dataSource.xero.tenantId = conns[0].tenantId;
+        cfgLib.save(cfg);
+        console.log(`\n✓ Saved tenantId for "${conns[0].tenantName}" to src/config.json`);
+        console.log('  Next:  node bin/tas.js xero-accounts     (list the chart of accounts)');
+      } else {
+        console.log('\nMore than one organisation — set dataSource.xero.tenantId manually to the right one.');
+      }
+      break;
+    }
+
     case 'xero-accounts': {
       // Lists the chart of accounts so the accountMap can be filled in from reality
       // rather than guessed — this is the main risk to the first report being right.
@@ -300,6 +321,7 @@ tas — Thread & Salt automated management accounts
   tas drive-owner <email>      whose drive stores the archive
 
   tas test-email [address]     send a test message to prove mail credentials work
+  tas xero-connect             discover + save the Xero tenant ID from the credentials
   tas xero-accounts            list the Xero chart of accounts (to fill in accountMap)
   tas demo [--live] [--pause]  the solution presentation, run live end to end
   tas doctor                   what's wired up, what's still pending
