@@ -33,9 +33,17 @@ The days and hours are staggered so the January runs (yearly + mid-yearly + quar
 monthly all land in the same week) never collide.
 
 > **Note on the weekly routine.** It needs daily-grain data, which only Xero provides.
-> Until Xero is connected it reports `SKIPPED_NO_GRAIN` and alerts us rather than
+> Until Xero is connected it reports `SKIPPED_NO_GRAIN` and notifies us rather than
 > inventing numbers — then starts working by itself once Xero is live. Either install it
 > now and expect skips, or add it at the same time as the Xero connection.
+
+> **Note on every other cadence, until Xero is live.** The workbook ends at **July 2026**,
+> so any period after it reports `SKIPPED_NO_DATA` — a clean skip, exit 0, no alert. In
+> practice: the first real run (Mon 3 Aug 2026) delivers the July pack, and every monthly
+> run after that skips quietly until Xero is connected. Windows that are only *partly*
+> covered are different — the Q3 quarterly on 3 Oct 2026 has July but not Aug/Sep, and
+> that **does** fail loudly, because a quarter's total built from one month would be
+> wrong but plausible.
 
 ## Installing it — one routine
 
@@ -82,6 +90,11 @@ Confirm an email with the attachment at both addresses, the file in the drive fo
 Every run writes `output/<run>/verification.json` — every check, every attempt, the
 delivery receipts. A run that fails a gate sends the client **nothing** and writes
 `ALERT.txt` (and emails the maintainer when Graph is configured).
+
+A run that *skips* — no daily grain, or no data for the period yet — writes `NOTICE.txt`
+instead and exits 0. The distinction is deliberate: `ALERT.txt` means go and look,
+`NOTICE.txt` means this was expected. Until Xero is connected the monthly cadence skips
+every month after July 2026, and that must not read as a monthly fault.
 
 A good quarterly habit — the optional care plan:
 

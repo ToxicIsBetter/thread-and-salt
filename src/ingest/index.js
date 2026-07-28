@@ -52,4 +52,48 @@ function grainSufficient(cfg, win) {
   return true;
 }
 
-module.exports = { ingest, grainSufficient, PROVIDERS };
+/**
+ * Does the configured source actually hold data for this window?
+ *
+ * This separates two situations that look identical to GATE 1 (both produce zero
+ * revenue) but mean opposite things:
+ *
+ *   "this period does not exist in the source yet"  → expected, a clean skip
+ *   "the source should have this period but gave us nothing" → a fault, must alert
+ *
+ * The discriminator is whether the provider is AUTHORITATIVE for the period:
+ *
+ *   fixture — a static workbook. It ends where it ends. Asking for a month past its
+ *             last row is a data boundary, not a breakage.
+ *   xero    — a live accounting system, authoritative for any closed period. If it
+ *             returns nothing for last month something IS wrong (outage, revoked
+ *             scope, truncated pull), so we never skip; we let GATE 1 fail loudly.
+ *
+ * Partial coverage is deliberately NOT a skip. A window with some months present and
+ * some missing is exactly where a misleading total could escape, so it falls through
+ * to GATE 1 and fails. Silence is only safe when there is nothing there at all.
+ */
+function coverageVerdict(cfg, raw, win) {
+  const name = cfg.dataSource.provider;
+  const provider = PROVIDERS[name];
+  if (provider && provider.authoritative) {
+    return { covered: true, authoritative: true };
+  }
+
+  const present = new Set((raw.months || []).map((m) => m.period));
+  const have = win.months.filter((k) => present.has(k));
+  if (have.length > 0) {
+    return { covered: true, authoritative: false, partial: have.length < win.months.length };
+  }
+
+  const keys = [...present].sort();
+  return {
+    covered: false,
+    authoritative: false,
+    firstPeriod: keys[0] || null,
+    lastPeriod: keys[keys.length - 1] || null,
+    needed: win.months.slice(),
+  };
+}
+
+module.exports = { ingest, grainSufficient, coverageVerdict, PROVIDERS };

@@ -25,6 +25,17 @@ async function saveReport({ cfg, model, file, mode, outDir }) {
   const segments = folderPathFor(cfg, model);
   const name = path.basename(file);
 
+  // ---- no separate archive ----
+  // With a self-addressed mailbox, the mailbox IS the archive: every pack is permanently
+  // stored, searchable and attachment-intact in both Sent and Inbox. A local path would be
+  // wrong here because a routine's sandbox is discarded after each run.
+  if ((cfg.deliver.drive.provider || 'onedrive') === 'none') {
+    return {
+      channel: 'drive', mode, transport: 'none',
+      note: 'No separate archive — the reports mailbox retains every pack.',
+    };
+  }
+
   // ---- local folder archive (e.g. a synced OneDrive/Dropbox folder on disk) ----
   // Useful when Graph file permissions aren't available: the sync client does the upload.
   if ((cfg.deliver.drive.provider || 'onedrive') === 'local') {

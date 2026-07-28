@@ -110,7 +110,7 @@ routines — see [`routines/schedules.md`](../routines/schedules.md).
 ## 5. Handover verification
 
 ```bash
-node bin/tas.js selftest    # 28 checks: both gates, all three retry loops, fault injection
+node bin/tas.js selftest    # 36 checks: both gates, all three retry loops, fault injection
 node bin/tas.js run-all     # every cadence end to end
 node bin/tas.js doctor      # all connections green
 ```

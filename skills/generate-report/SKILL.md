@@ -62,6 +62,11 @@ node bin/tas.js doctor                           # what's connected, what's pend
 - `⚠ SKIPPED_NO_GRAIN` — this cadence needs finer-grained data than the current source
   has (the weekly pack needs daily data, i.e. Xero). Expected until Xero is connected;
   it starts working on its own afterwards.
+- `⚠ SKIPPED_NO_DATA` — the source has no figures for this period at all (the workbook
+  ends July 2026). Not a fault and not retryable: the period simply is not there yet. A
+  `NOTICE.txt` is filed instead of an `ALERT.txt`, and the exit code is 0. Resolves itself
+  once Xero is connected. Note this fires only for a **non-authoritative** source; a live
+  Xero returning nothing for a closed period is treated as a genuine failure, because it is.
 
 Do not try to "fix" a failed run by editing figures or re-sending manually — the point
 of the gates is that a questionable number never reaches the founders. Diagnose from

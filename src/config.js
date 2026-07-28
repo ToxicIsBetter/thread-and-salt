@@ -14,7 +14,29 @@ const CONFIG_PATH = path.join(__dirname, 'config.json');
 function load() {
   const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
   cfg._root = ROOT;
+  applyEnvOverrides(cfg);
   return cfg;
+}
+
+/**
+ * Environment overrides for delivery settings.
+ *
+ * Lets a test run (or a routine) redirect delivery without editing committed config —
+ * so src/config.json always holds the production values and nothing test-related can
+ * reach the client by accident.
+ */
+function applyEnvOverrides(cfg) {
+  const E = process.env;
+  if (E.TAS_EMAIL_PROVIDER) cfg.deliver.email.provider = E.TAS_EMAIL_PROVIDER;
+  if (E.TAS_SENDER) cfg.deliver.email.senderUpn = E.TAS_SENDER;
+  if (E.TAS_RECIPIENTS) {
+    cfg.deliver.email.recipients = E.TAS_RECIPIENTS.split(',')
+      .map((x) => x.trim()).filter(Boolean).map(parseRecipient);
+  }
+  if (E.TAS_DRIVE_PROVIDER) cfg.deliver.drive.provider = E.TAS_DRIVE_PROVIDER;
+  if (E.TAS_DRIVE_LOCAL_PATH) cfg.deliver.drive.localPath = E.TAS_DRIVE_LOCAL_PATH;
+  if (E.TAS_DATA_PROVIDER) cfg.dataSource.provider = E.TAS_DATA_PROVIDER;
+  cfg._envOverrides = Object.keys(E).filter((k) => /^TAS_(EMAIL_PROVIDER|SENDER|RECIPIENTS|DRIVE_|DATA_PROVIDER)/.test(k));
 }
 
 function save(cfg) {
@@ -136,6 +158,7 @@ function readiness(cfg) {
 }
 
 module.exports = {
+  applyEnvOverrides,
   ROOT,
   CONFIG_PATH,
   load,

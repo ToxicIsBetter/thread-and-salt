@@ -199,4 +199,7 @@ function endOfMonthISO(key) {
   return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 }
 
-module.exports = { pull, NotConnectedError };
+// Authoritative: a live ledger is the final word on any closed period. If it returns
+// nothing for a period that has ended, that is a fault to alert on (outage, revoked
+// scope, truncated pull) — never a silent skip. See coverageVerdict() in ./index.js.
+module.exports = { pull, NotConnectedError, authoritative: true };

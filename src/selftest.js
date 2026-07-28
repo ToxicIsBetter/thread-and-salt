@@ -15,7 +15,7 @@ const path = require('path');
 
 const configLib = require('./config');
 const { windowFor } = require('./period');
-const { ingest } = require('./ingest');
+const { ingest, coverageVerdict } = require('./ingest');
 const { clean } = require('./transform/clean');
 const pnl = require('./transform/pnl');
 const signalsLib = require('./insight/signals');
@@ -149,6 +149,48 @@ async function selftest() {
   console.log('\ngrain guard');
   const weekly = await run({ cadence: 'weekly', asOf: AS_OF, deliver: true, mode: 'dryrun', quiet: true, outRoot: path.join(tmp, 'weekly') });
   assert('weekly is skipped (not faked) while only monthly data exists', weekly.outcome === 'SKIPPED_NO_GRAIN', weekly.outcome);
+
+  // ---------- coverage guard ----------
+  // "No data for this period yet" must not look like "the pipeline is broken". The
+  // workbook ends July 2026, so the September run (asking for August) is the first
+  // real-world case: it has to skip calmly, not raise a monthly false alarm.
+  console.log('\ncoverage guard');
+  const beyond = await run({
+    cadence: 'monthly', asOf: '2026-09-03', deliver: true, mode: 'dryrun', quiet: true,
+    outRoot: path.join(tmp, 'beyond'),
+  });
+  assert('a period past the end of the source skips, not fails', beyond.outcome === 'SKIPPED_NO_DATA', beyond.outcome);
+  assert(
+    'the skip does not burn the ingest retry ladder',
+    beyond.journal.attempts.length === 0,
+    `${beyond.journal.attempts.length} attempts`
+  );
+  assert('nothing was delivered for an uncovered period', !fs.existsSync(path.join(beyond.outDir, 'outbox')));
+  assert('a skip is filed as a NOTICE, not an ALERT', fs.existsSync(path.join(beyond.outDir, 'NOTICE.txt')));
+  assert('a skip raises no ALERT.txt to chase', !fs.existsSync(path.join(beyond.outDir, 'ALERT.txt')));
+
+  // The discriminator that keeps the skip safe. A static workbook can legitimately not
+  // contain a month; a live ledger cannot — an empty pull from Xero means something is
+  // wrong, so it must still fail loudly.
+  const winAug = windowFor('monthly', '2026-09-03');
+  const oldOnly = { months: [{ period: '2024-01', revenuePence: 1 }] };
+  assert(
+    'a non-authoritative source missing the month reports uncovered',
+    coverageVerdict(cfg, oldOnly, winAug).covered === false
+  );
+  const xeroCfg = { ...cfg, dataSource: { ...cfg.dataSource, provider: 'xero' } };
+  assert(
+    'an authoritative source (Xero) is never silently skipped',
+    coverageVerdict(xeroCfg, oldOnly, winAug).covered === true
+  );
+  // Partial coverage is the dangerous middle case — a total built from 1 of 3 months
+  // would be wrong but plausible, so it must reach GATE 1 and fail there.
+  const winQ = windowFor('quarterly', '2026-08-03'); // May–Jul 2026
+  const partial = { months: [{ period: '2026-07', revenuePence: 1 }] };
+  assert(
+    'partial coverage reaches GATE 1 rather than skipping',
+    coverageVerdict(cfg, partial, winQ).covered === true
+  );
 
   // ---------- recipient management ----------
   console.log('\nrecipient management');

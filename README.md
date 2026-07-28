@@ -65,7 +65,7 @@ node bin/tas.js doctor            # what's connected, what's pending
 node bin/tas.js run monthly       # generate → verify → verify → email + file
 node bin/tas.js run-due           # whatever is due today (what the daily routine calls)
 node bin/tas.js run-all           # all five cadences
-node bin/tas.js selftest          # 28 fault-injection checks on the safety machinery
+node bin/tas.js selftest          # 36 fault-injection checks on the safety machinery
 node bin/tas.js recipients list   # who receives the reports (changeable any time)
 ```
 

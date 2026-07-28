@@ -247,7 +247,7 @@ A good quarterly habit (the optional care plan):
 
 ```bash
 node bin/tas.js doctor      # connections still valid?
-node bin/tas.js selftest    # 28 checks on the safety machinery
+node bin/tas.js selftest    # 36 checks on the safety machinery
 ```
 
 ---
@@ -264,6 +264,7 @@ node bin/tas.js selftest    # 28 checks on the safety machinery
 | `FAILED_NUMBERS` | GATE 1 rejected the figures — usually a wrong `accountMap` | Read `verification.json`; re-confirm codes with Jonah |
 | `FAILED_RENDER` | The document didn't match the verified figures | Read `verification.json`; this is a bug for us, not a config issue |
 | `SKIPPED_NO_GRAIN` on weekly | Source has no daily data | Expected until Xero is live; resolves itself |
+| `SKIPPED_NO_DATA` on any cadence | The source has no figures for that period — the workbook ends July 2026 | Not a fault. Exit 0, `NOTICE.txt` not `ALERT.txt`; resolves itself once Xero is live |
 | `Nothing due …` | Correct behaviour on a non-report day | Not a fault — test with step 4's prompt instead |
 | `Cannot find module …` | Dependencies not installed | Add `npm ci --omit=dev` to the setup script or keep it in the prompt |
 

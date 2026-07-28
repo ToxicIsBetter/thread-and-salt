@@ -14,7 +14,7 @@ const path = require('path');
 
 const configLib = require('./config');
 const { windowFor } = require('./period');
-const { ingest, grainSufficient } = require('./ingest');
+const { ingest, grainSufficient, coverageVerdict } = require('./ingest');
 const { clean } = require('./transform/clean');
 const pnl = require('./transform/pnl');
 const signalsLib = require('./insight/signals');
@@ -32,6 +32,7 @@ const OUTCOME = {
   FAILED_NUMBERS: 'FAILED_NUMBERS',
   FAILED_RENDER: 'FAILED_RENDER',
   SKIPPED_NO_GRAIN: 'SKIPPED_NO_GRAIN',
+  SKIPPED_NO_DATA: 'SKIPPED_NO_DATA',
   ERROR: 'ERROR',
 };
 
@@ -87,11 +88,7 @@ async function run(opts = {}) {
       `The ${cadence} pack needs daily-grain data, but the "${cfg.dataSource.provider}" source is ` +
       `${cfg.dataSource[cfg.dataSource.provider].grain}-grain. This cadence starts working automatically ` +
       `once Xero is connected — no code change needed.`;
-    log(quiet, `⚠ SKIPPED — ${reason}`);
-    history.push({ stage: 'grain', pass: false, outcome: OUTCOME.SKIPPED_NO_GRAIN, error: reason });
-    writeJournal({ outcome: OUTCOME.SKIPPED_NO_GRAIN, reason, finishedAt: new Date().toISOString() });
-    await sendAlert({ cfg, subject: `${cadence} pack skipped (needs Xero)`, reason, history, outDir: outRoot, mode });
-    return { outcome: OUTCOME.SKIPPED_NO_GRAIN, reason, outDir: outRoot, journal };
+    return await skip(OUTCOME.SKIPPED_NO_GRAIN, reason, 'grain', `${cadence} pack skipped (needs Xero)`);
   }
 
   const maxPasses = 1 + (cfg.retry.fullRestarts || 0);
@@ -108,6 +105,28 @@ async function run(opts = {}) {
       if (outOfTime()) return await bail(OUTCOME.ERROR, 'Wall-clock timeout exceeded');
       try {
         const raw = await ingest(cfg, win, attempt);
+
+        // ---- coverage guard: the source has no data for this period at all ----
+        // Distinct from a gate failure: nothing is wrong, the period simply is not in
+        // the source yet. Retrying cannot help, so return immediately rather than
+        // burning the ingest ladder and raising a false alarm. Never fires for an
+        // authoritative source — see coverageVerdict() in ingest/index.js.
+        const cover = coverageVerdict(cfg, raw, win);
+        if (!cover.covered) {
+          const span = cover.firstPeriod ? `${cover.firstPeriod} to ${cover.lastPeriod}` : 'nothing';
+          const reason =
+            `The "${cfg.dataSource.provider}" source holds no data for ${win.label}. It covers ${span}; ` +
+            `this pack needs ${win.months.join(', ')}. Nothing is broken — the source simply ends there, ` +
+            `so no report was produced and the client was sent nothing. This cadence starts working by ` +
+            `itself once Xero is connected — no code change needed.`;
+          return await skip(
+            OUTCOME.SKIPPED_NO_DATA,
+            reason,
+            'coverage',
+            `${cadence} pack skipped (no data for ${win.label})`
+          );
+        }
+
         cleaned = clean(raw);
         model = pnl.build(cleaned, win, cfg);
         gate1 = verifyNumbers(model, cleaned, cfg);
@@ -212,6 +231,20 @@ async function run(opts = {}) {
   return await bail(OUTCOME.FAILED_RENDER, `GATE 2 could not be satisfied after ${maxPasses} full passes`);
 
   // ---------- helpers ----------
+  /**
+   * A cadence that cannot run yet through no fault of the pipeline: the source lacks
+   * the grain, or lacks the period entirely. The client is sent nothing (same as a
+   * failure) but the outcome says "not yet", not "broken" — so the routine reports it
+   * calmly and nobody chases a phantom defect.
+   */
+  async function skip(outcome, reason, stage, subject) {
+    log(quiet, `⚠ SKIPPED — ${reason}`);
+    history.push({ stage, pass: false, outcome, error: reason });
+    writeJournal({ outcome, reason, finishedAt: new Date().toISOString() });
+    await sendAlert({ cfg, subject, reason, history, outDir: outRoot, mode, kind: 'notice' });
+    return { outcome, reason, outDir: outRoot, journal };
+  }
+
   async function bail(outcome, reason) {
     log(quiet, `\n✗ ${outcome} — ${reason}`);
     writeJournal({ outcome, reason, finishedAt: new Date().toISOString() });

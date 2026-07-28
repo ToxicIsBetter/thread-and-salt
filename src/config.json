@@ -52,32 +52,27 @@
   "deliver": {
     "mode": "auto",
     "email": {
-      "provider": "microsoft-graph",
+      "provider": "smtp",
       "recipients": [
         {
-          "name": "Mara",
-          "address": "mara@threadandsalt.example"
-        },
-        {
-          "name": "Jonah",
-          "address": "jonah@threadandsalt.example"
+          "name": "Thread & Salt Reports",
+          "address": "report.tands@gmail.com"
         }
       ],
       "cc": [],
       "subjectTemplate": "Thread & Salt \u2014 {cadence} management accounts \u2014 {period}",
       "smtp": {
-        "preset": "microsoft-365",
-        "host": "smtp.office365.com",
+        "preset": "gmail",
+        "host": "smtp.gmail.com",
         "port": 587,
-        "_note": "Fallback transport. Used only when deliver.email.provider = \"smtp\". Graph is the production path; SMTP exists for tenants where an app registration is not possible."
+        "_note": "Active transport. The sender is a gmail.com address, which Microsoft Graph cannot send as (Graph only sends as mailboxes inside an Entra tenant). Needs TAS_SMTP_PASS (a Google App Password, requires 2-Step Verification) in the git-ignored .env."
       },
-      "senderUpn": "reports@threadandsalt.example"
+      "senderUpn": "report.tands@gmail.com"
     },
     "drive": {
-      "provider": "onedrive",
-      "driveOwnerUpn": "reports@threadandsalt.example",
+      "provider": "none",
       "rootFolder": "Thread & Salt Reports",
-      "_note": "Set provider to \"local\" with localPath to archive into a synced folder instead."
+      "_note": "The reports mailbox is the archive: it receives every pack and retains it. Set provider to \"onedrive\" (with driveOwnerUpn, needs an Entra app) or \"local\" (with localPath, only meaningful for local runs) to file a separate copy."
     },
     "format": "pdf"
   },

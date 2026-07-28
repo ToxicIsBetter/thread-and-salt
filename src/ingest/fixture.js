@@ -149,4 +149,7 @@ async function pull(cfg, win, escalation = 1) {
   };
 }
 
-module.exports = { pull };
+// Not authoritative: a static workbook cannot be asked about a period it does not
+// contain, so a period past its last row is a clean skip, not a fault. See
+// coverageVerdict() in ./index.js.
+module.exports = { pull, authoritative: false };

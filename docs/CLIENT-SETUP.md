@@ -162,6 +162,9 @@ Then report what happened:
   email the founders yourself.
 - "SKIPPED_NO_GRAIN" — the weekly pack is waiting on the Xero connection. Expected until
   Xero is live; nothing to fix.
+- "SKIPPED_NO_DATA" — the source holds no figures for that period yet (the workbook ends
+  July 2026, so every month after it skips until Xero is live). Nothing is broken and
+  nothing needs chasing: a NOTICE was filed rather than an alert. Say so and stop there.
 
 The pipeline does its own verification and retrying. Never add your own retry loops, and
 never compute, correct or estimate a financial figure yourself.
@@ -224,6 +227,6 @@ node bin/tas.js run-due --as-of 2026-08-03
 - [ ] Three env vars set; **plaintext-storage trade-off explicitly accepted**; credentials rotated
 - [ ] One daily routine installed (`run-due`, `0 7 * * 1-7`)
 - [ ] **Run now** proved: email with attachment + drive copy + `✓ DELIVERED`
-- [ ] `selftest` green (28 checks); `doctor` all green
+- [ ] `selftest` green (36 checks); `doctor` all green
 - [ ] Alert address is one **we** monitor, not theirs
 - [ ] One-page plain-English guide handed to the founders

@@ -35,7 +35,14 @@
       "Bash(timeout 180 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
       "Bash(git add *)",
       "Bash(git -c 'user.name=Shyam Jagani' -c user.email=shyam.jagani@negativezero.com commit -q -m ' *)",
-      "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git push origin main)"
+      "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git push origin main)",
+      "Bash(timeout 60 git -c credential.helper='/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe' -c credential.interactive=never push origin main)",
+      "Bash(echo \"--- exit: $? ---\")",
+      "Bash(git config *)",
+      "Bash(sed 's/^/  ssh key: /')",
+      "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote --heads origin)",
+      "Bash(node scripts/export-conversation.js)",
+      "Bash(npm test *)"
     ]
   }
 }

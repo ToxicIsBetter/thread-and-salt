@@ -136,7 +136,7 @@ nothing on most days.
 
 - [ ] First pack reviewed by us and signed off by Jonah (**M1**)
 - [ ] Routine installed and proved with **Run now** (**M2**)
-- [ ] `node bin/tas.js selftest` green — 28 checks (**M3**)
+- [ ] `node bin/tas.js selftest` green — 36 checks (**M3**)
 - [ ] `node bin/tas.js doctor` all green
 - [ ] **Both secrets rotated** — we will have seen them during setup
 - [ ] Alert address is one **we** monitor, not theirs

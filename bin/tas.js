@@ -17,6 +17,16 @@ const { CADENCES } = require('../src/period');
 const args = process.argv.slice(2);
 const cmd = (args.shift() || 'help').toLowerCase();
 
+/**
+ * Outcomes that are NOT a failure, so exit 0.
+ *
+ * A skip means "this cadence cannot run yet, and that is expected" — no grain, or the
+ * period is not in the source. The client is sent nothing either way, but a skip must
+ * not exit non-zero: the scheduled routine reads the exit code, and a monthly false
+ * alarm is how people learn to ignore real ones.
+ */
+const OK_OUTCOMES = new Set(['DELIVERED', 'SKIPPED_NO_GRAIN', 'SKIPPED_NO_DATA']);
+
 function flag(name) {
   const i = args.indexOf(`--${name}`);
   if (i < 0) return null;
@@ -48,7 +58,7 @@ async function main() {
         deliver: !noDeliver,
         mode: live ? 'live' : dry ? 'dryrun' : undefined,
       });
-      process.exitCode = res.outcome === 'DELIVERED' ? 0 : 1;
+      process.exitCode = OK_OUTCOMES.has(res.outcome) ? 0 : 1;
       break;
     }
 
@@ -70,7 +80,7 @@ async function main() {
       }
       console.log('\n── summary ──');
       for (const r of results) console.log(`  ${r.cadence.padEnd(11)} ${r.outcome}`);
-      const bad = results.filter((r) => r.outcome !== 'DELIVERED' && r.outcome !== 'SKIPPED_NO_GRAIN');
+      const bad = results.filter((r) => !OK_OUTCOMES.has(r.outcome));
       process.exitCode = bad.length ? 1 : 0;
       break;
     }
