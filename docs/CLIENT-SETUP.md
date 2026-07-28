@@ -151,6 +151,7 @@ Generate any Thread & Salt management accounts that are due today.
 
 In the cloned repository, run:
     npm ci --omit=dev
+    node bin/tas.js preflight
     node bin/tas.js run-due
 
 Then report what happened:
@@ -165,6 +166,12 @@ Then report what happened:
 - "SKIPPED_NO_DATA" — the source holds no figures for that period yet (the workbook ends
   July 2026, so every month after it skips until Xero is live). Nothing is broken and
   nothing needs chasing: a NOTICE was filed rather than an alert. Say so and stop there.
+- "FAILED_DELIVERY" — the pack was generated AND verified, but could not be sent. Quote the
+  error and the preflight output: a blocked SMTP port is the usual cause. Do not re-render
+  and do not try another route.
+
+Always report the preflight result too, even when nothing was due — it is how we know this
+environment can still reach the mail server.
 
 The pipeline does its own verification and retrying. Never add your own retry loops, and
 never compute, correct or estimate a financial figure yourself.

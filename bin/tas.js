@@ -240,6 +240,13 @@ async function main() {
       break;
     }
 
+    case 'demo': {
+      // The solution presentation, run live.
+      const { demo } = require('../src/demo');
+      await demo({ live: has('live'), pause: has('pause') });
+      break;
+    }
+
     case 'preflight': {
       // Does this environment allow the outbound connections delivery needs?
       const cfg = cfgLib.load();
@@ -294,6 +301,7 @@ tas — Thread & Salt automated management accounts
 
   tas test-email [address]     send a test message to prove mail credentials work
   tas xero-accounts            list the Xero chart of accounts (to fill in accountMap)
+  tas demo [--live] [--pause]  the solution presentation, run live end to end
   tas doctor                   what's wired up, what's still pending
   tas preflight                can this environment reach SMTP / Xero? (run in the sandbox)
   tas selftest                 fault-inject the verification loops

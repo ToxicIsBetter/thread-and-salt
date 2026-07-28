@@ -48,7 +48,8 @@
       "Bash(TAS_SMTP_PORT=9 timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
       "Bash(TAS_SMTP_HOST=127.0.0.1 TAS_SMTP_PORT=1 timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
       "Bash(echo \"real exit code: $?  \\(must be non-zero so the routine flags it\\)\")",
-      "Bash(timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)"
+      "Bash(timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
+      "Bash(node bin/tas.js demo)"
     ]
   }
 }
