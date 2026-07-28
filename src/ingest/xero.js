@@ -24,6 +24,7 @@ class NotConnectedError extends Error {
 
 const DEFAULT_API = 'https://api.xero.com/api.xro/2.0';
 const { getToken, SCOPES } = require('./xero-token');
+const { listConnections } = require('./xero-connections');
 
 /** Endpoints are overridable so the adapter can be exercised against a local mock. */
 const apiBase = (cfg) => cfg.dataSource.xero.apiBase || process.env.TAS_XERO_API_BASE || DEFAULT_API;
@@ -171,8 +172,20 @@ async function pull(cfg, win, escalation = 1) {
 
   // Units, where available, come from invoice line quantities (optional enrichment:
   // the pack degrades gracefully to revenue-only if this is not granted).
+  // Which organisation did these figures actually come from? Recorded so the pipeline can
+  // refuse to publish one company's numbers under another company's name.
+  let organisation = null;
+  try {
+    const conns = await listConnections(cfg);
+    const match = conns.find((c) => c.tenantId === creds.tenantId) || conns[0];
+    organisation = match ? match.tenantName : null;
+  } catch {
+    organisation = null; // non-fatal: the mismatch guard treats unknown as "cannot confirm"
+  }
+
   return {
     source: 'xero',
+    organisation,
     grain: cfg.dataSource.xero.grain || 'day',
     pulledAt: new Date().toISOString(),
     currency: cfg.business.currency,
@@ -182,9 +195,11 @@ async function pull(cfg, win, escalation = 1) {
     assumptions: { fromSource: true, fixedByYear: {} },
     provenance: {
       kind: 'xero',
+      organisation: cfg.dataSource.xero.tenantName || null,
       tenantId: creds.tenantId,
       tenantName: cfg.dataSource.xero.tenantName || null,
       basis: cfg.dataSource.xero.reportBasis,
+      organisation,
       note: 'Pulled live from the Xero Profit & Loss report; totals reconcile to Xero by construction.',
     },
   };

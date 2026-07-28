@@ -239,7 +239,11 @@ async function render(model, signals, dir, opts = {}) {
   doc.y = rule(doc.y + 8) + 4;
   doc.font('Helvetica-Bold').fontSize(7.6).fillColor(GREY).text('Notes.  ', X0, doc.y, { continued: true });
   doc.font('Helvetica').fillColor(GREY).text(
-    pdfSafe(`Management information for internal decisions - not audited or statutory accounts, and shown ex-VAT. Source: ${model.meta.source === 'xero' ? 'live Xero pull' : 'client finance workbook'}. Generated automatically; every figure is verified against source before this pack is sent.`),
+    pdfSafe(`Management information for internal decisions - not audited or statutory accounts, and shown ex-VAT. Source: ${
+      model.meta.source === 'xero'
+        ? `live Xero pull${model.meta.provenance && model.meta.provenance.organisation ? ` from the "${model.meta.provenance.organisation}" organisation` : ''}`
+        : 'client finance workbook'
+    }. Generated automatically; every figure is verified against source before this pack is sent.`),
     { width: CW }
   );
 
