@@ -8,6 +8,19 @@ Run `node bin/tas.js doctor` at any point to see exactly what is still outstandi
 
 ## 1. Connect Xero (when access is granted)
 
+> **A Xero MCP connector on the routine will NOT be used.** Connectors are tools for *Claude*;
+> the pipeline is a Node process that authenticates to `api.xero.com` itself with OAuth client
+> credentials. It cannot see Claude's tools, and nothing in the code looks for them. Xero is
+> reached only via the three items below.
+>
+> This is deliberate. Routing figures through a connector would mean a language model relaying
+> financial data into the pipeline, which breaks the rule the whole design rests on — no model
+> ever touches a number — and would make GATE 1's "reconciles to Xero to the penny" claim
+> meaningless, because the source itself would be a paraphrase.
+>
+> If `provider` is set to `"xero"` without credentials, the run stops with
+> `Xero is not connected yet. Still needed: …` and sends nothing. There is no silent fallback.
+
 Nothing in the pipeline changes — the Xero adapter already exists and returns the same
 shape as the workbook reader.
 
