@@ -49,22 +49,31 @@ run will fail:
 
 **a) Network access — required.** The default *Trusted* environment blocks arbitrary hosts
 (outbound requests fail `403 host_not_allowed`). Set network access to **Custom** and
-allowlist:
+allowlist what the configured transport actually needs:
 
 ```
-identity.xero.com
-api.xero.com
-login.microsoftonline.com
-graph.microsoft.com
+smtp.gmail.com        # delivery — current production transport, port 587
+identity.xero.com     # Xero auth — once Xero is connected
+api.xero.com          # Xero data — once Xero is connected
 ```
 
-**b) Environment variables — required.** The pipeline reads three credentials at runtime:
+Add `login.microsoftonline.com` and `graph.microsoft.com` **only** if delivery is switched to
+Microsoft Graph, which requires a mailbox inside an Entra tenant.
+
+Verify inside the sandbox, not just locally: `node bin/tas.js preflight`. Delivery uses raw
+SMTP on **port 587** — an environment that allows only HTTPS will block it, and that must be
+discovered here rather than on the 3rd of the month.
+
+**b) Environment variables — required.** One secret now, two more once Xero is connected:
 
 ```
-TAS_XERO_CLIENT_ID=…
-TAS_XERO_CLIENT_SECRET=…
-TAS_GRAPH_CLIENT_SECRET=…
+TAS_SMTP_PASS=…            # Google App Password for the reports mailbox (needs 2FA on that account)
+TAS_XERO_CLIENT_ID=…       # once Xero access is granted
+TAS_XERO_CLIENT_SECRET=…   # once Xero access is granted
 ```
+
+The SMTP username is not a separate variable — it defaults to `deliver.email.senderUpn`.
+`TAS_GRAPH_CLIENT_SECRET` is needed only if delivery moves to Microsoft Graph.
 
 > ### ⚠️ Read this before entering credentials
 > Claude Code has **no encrypted secrets store today** — routine environment variables are
@@ -77,11 +86,11 @@ TAS_GRAPH_CLIENT_SECRET=…
 
 Only these three values — nothing else:
 
-| Variable | Sensitivity | What it permits if exposed (with the scoping below) |
+| Variable | Sensitivity | What it permits if exposed |
 |---|---|---|
+| `TAS_SMTP_PASS` | **sensitive** | send mail **as the reports mailbox** — and, because that mailbox is also the archive, read the reports already in it. Revocable instantly, and it grants nothing else on the account. |
 | `TAS_XERO_CLIENT_ID` | low — an identifier | nothing on its own |
 | `TAS_XERO_CLIENT_SECRET` | **sensitive** | **read** the accounts. Cannot edit the books, move money, or touch bank feeds. |
-| `TAS_GRAPH_CLIENT_SECRET` | **most sensitive** | send email **as the reports mailbox**, and read/write files in the one drive folder it is scoped to. |
 
 **What is *not* stored there:** none of the financial data, none of the reports, no customer
 information. Those exist only while a run is executing, and the finished pack goes to their
@@ -110,12 +119,14 @@ Realistically, the threat model is "someone gets into their Claude login."
 
 - **MFA on the Claude account**, a unique password, and don't share the login. This is the
   single highest-value control, because account access *is* the exposure.
-- **Use a dedicated `reports@` mailbox**, never a founder's personal mailbox, so that
-  worst-case "send as" abuse is limited to a low-value address.
+- **A dedicated reports mailbox**, never a founder's personal one — currently
+  `report.tands@gmail.com`. Worst-case "send as" abuse is then limited to that address.
+- **2FA on the reports mailbox itself.** It holds every pack indefinitely, so it is a store of
+  the client's financial history, not just a sender.
 - **Xero: read-only.** A Custom Connection limited to `accounting.reports.read`,
   `accounting.transactions.read`, `accounting.settings.read`.
-- **Entra: least privilege.** Scope `Mail.Send` to that one mailbox with an
-  ApplicationAccessPolicy; prefer `Sites.Selected` / a single drive over tenant-wide file access.
+- **App passwords are single-purpose** — revoke and reissue in seconds, with no effect on
+  anything else the account can do.
 - **Rotate both secrets at handover** (we will have seen them during setup), and whenever
   someone with account access leaves.
 - **Revocation is instant** — either credential can be killed in Xero or Entra at any time,
@@ -125,20 +136,30 @@ If the client is not comfortable with plaintext storage, say so now: the alterna
 hosting the schedule outside Claude, which breaks the one-account requirement. That is a
 genuine trade-off between simplicity and secret hygiene, and it is theirs to make.
 
-#### Why we do not switch to Gmail
+#### Why delivery is Gmail SMTP, not Microsoft Graph
 
-Worth recording, because the reasoning is easy to lose: the "attachments are not supported"
-limitation belongs to **Claude's pre-built Microsoft 365 connector**, *not* to Microsoft,
-Entra ID, or the Graph API. We call Graph directly, and Graph sends file attachments
-perfectly well (`#microsoft.graph.fileAttachment`) — which is exactly what the pipeline
-already does. Moving to Gmail would:
+This reversed during the build, so the reasoning is worth recording.
 
-- require a **second, non-Microsoft account**, breaking the one-account requirement;
-- send the reports from a **non-company address** rather than their own domain;
-- still need an OAuth client secret and refresh token in the **same plaintext environment**
-  — so it buys no security whatsoever.
+Graph was the original plan, on the assumption reports would send from a Microsoft 365
+mailbox on the client's own domain. Production instead sends from **`report.tands@gmail.com`**,
+a dedicated mailbox that both sends the packs and receives them — so the mailbox *is* the
+archive. **Graph cannot serve that address at all:** it only sends as mailboxes inside an
+Entra tenant. With a Gmail sender, SMTP is not a compromise, it is the only route.
 
-Their mail is already Microsoft 365. Entra + Graph is the right choice; nothing to change.
+Consequences, stated plainly:
+
+- Reports arrive **from a gmail.com address**, not the client's domain. Fine for an internal
+  archive; less ideal as the client-facing sender.
+- Delivery needs **outbound SMTP on port 587**, which a restricted sandbox may block —
+  hence `preflight`.
+- There is **no separate drive copy** (`drive.provider: "none"`): a routine's sandbox is
+  discarded after every run, so a local archive path would silently lose every pack. The
+  mailbox retains them instead.
+
+Switching to same-domain sending later means: register an Entra app with `Mail.Send`
+(admin-consented, scoped by ApplicationAccessPolicy to one mailbox), set
+`deliver.email.provider` to `"microsoft-graph"`, and swap the allowlist entries. No pipeline
+changes — both transports are implemented and interchangeable.
 
 ### 2.3 The routine prompt
 
