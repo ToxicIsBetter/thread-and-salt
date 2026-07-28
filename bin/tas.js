@@ -226,7 +226,7 @@ async function main() {
       console.log(`  ${tick(r.xeroReady)} Xero connected        ${r.xeroReady ? 'yes' : 'not yet — set dataSource.xero.tenantId + $TAS_XERO_CLIENT_ID/$TAS_XERO_CLIENT_SECRET'}`);
       console.log(`  mail provider          ${r.mailProvider}`);
       if (r.mailProvider === 'smtp') {
-        console.log(`  ${tick(r.smtpCreds)} SMTP credentials      ${r.smtpCreds ? `yes (${process.env.TAS_SMTP_USER})` : 'not yet — set TAS_SMTP_USER / TAS_SMTP_PASS (+ host or preset) in .env'}`);
+        console.log(`  ${tick(r.smtpCreds)} SMTP credentials      ${r.smtpCreds ? `yes (${r.smtpUser})` : 'not yet — set TAS_SMTP_PASS in .env (user defaults to the sender)'}`);
       } else {
         console.log(`  ${tick(r.graphCreds)} Entra / Graph creds   ${r.graphCreds ? 'yes' : `not yet — set entra.tenantId, entra.clientId, $${cfg.entra.clientSecretEnv}`}`);
       }

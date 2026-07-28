@@ -28,7 +28,10 @@ function settings(cfg) {
   const preset = s.preset ? PRESETS[s.preset] : null;
   const host = process.env.TAS_SMTP_HOST || s.host || (preset && preset.host);
   const port = Number(process.env.TAS_SMTP_PORT || s.port || (preset && preset.port) || 587);
-  const user = process.env.TAS_SMTP_USER || s.user;
+  // Default the SMTP username to the configured sender: for Gmail (and most providers) the
+  // authenticating account IS the from-address, so requiring a separate env var is a trap.
+  // An explicit TAS_SMTP_USER still wins, for the shared-mailbox case where they differ.
+  const user = process.env.TAS_SMTP_USER || s.user || cfg.deliver.email.senderUpn;
   // Google displays app passwords as "abcd efgh ijkl mnop"; the spaces are for readability
   // only and must not be sent, so strip all whitespace before authenticating.
   const pass = (process.env.TAS_SMTP_PASS || '').replace(/\s+/g, '') || undefined;

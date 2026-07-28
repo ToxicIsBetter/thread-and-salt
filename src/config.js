@@ -123,7 +123,9 @@ function readiness(cfg) {
   const placeholder = (a) => /example\.com|example$|\.example$/i.test(String(a));
   const graphCreds =
     !!cfg.entra.tenantId && !!cfg.entra.clientId && !!process.env[cfg.entra.clientSecretEnv];
-  const smtpCreds = !!process.env.TAS_SMTP_USER && !!process.env.TAS_SMTP_PASS &&
+  const smtpUser = process.env.TAS_SMTP_USER ||
+    (cfg.deliver.email.smtp && cfg.deliver.email.smtp.user) || cfg.deliver.email.senderUpn;
+  const smtpCreds = !!smtpUser && !!process.env.TAS_SMTP_PASS &&
     (!!process.env.TAS_SMTP_HOST || !!(cfg.deliver.email.smtp && (cfg.deliver.email.smtp.host || cfg.deliver.email.smtp.preset)));
   const provider = cfg.deliver.email.provider || 'microsoft-graph';
   const mailCreds = provider === 'smtp' ? smtpCreds : graphCreds;
@@ -141,6 +143,7 @@ function readiness(cfg) {
   return {
     graphCreds,
     smtpCreds,
+    smtpUser,
     mailProvider: provider,
     mailCreds,
     realRecipients,

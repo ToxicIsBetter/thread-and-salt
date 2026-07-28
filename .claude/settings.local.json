@@ -43,7 +43,8 @@
       "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote --heads origin)",
       "Bash(node scripts/export-conversation.js)",
       "Bash(npm test *)",
-      "Bash(node bin/tas.js preflight)"
+      "Bash(node bin/tas.js preflight)",
+      "Bash(sed -i 's|^TAS_SMTP_PASS=.*|TAS_SMTP_PASS=nqpp wvgg gaaq nlxw|' .env)"
     ]
   }
 }
