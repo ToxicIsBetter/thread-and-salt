@@ -42,7 +42,8 @@
       "Bash(sed 's/^/  ssh key: /')",
       "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote --heads origin)",
       "Bash(node scripts/export-conversation.js)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(node bin/tas.js preflight)"
     ]
   }
 }

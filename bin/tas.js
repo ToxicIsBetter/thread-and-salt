@@ -240,6 +240,25 @@ async function main() {
       break;
     }
 
+    case 'preflight': {
+      // Does this environment allow the outbound connections delivery needs?
+      const cfg = cfgLib.load();
+      const { preflight } = require('../src/preflight');
+      console.log('\nConnectivity preflight — run this inside the routine sandbox too\n');
+      const checks = await preflight(cfg);
+      let bad = 0;
+      for (const c of checks) {
+        const alt = /\(alt\)/.test(c.label);
+        if (!c.ok && !alt) bad++;
+        console.log(`  ${c.ok ? '✓' : alt ? '·' : '✗'} ${c.label.padEnd(34)} ${c.detail} (${c.ms}ms)`);
+      }
+      console.log(bad === 0
+        ? '\n✓ all required connections available here\n'
+        : `\n✗ ${bad} required connection(s) blocked — delivery would fail in this environment\n`);
+      process.exitCode = bad ? 1 : 0;
+      break;
+    }
+
     case 'selftest': {
       await require('../src/selftest').selftest();
       break;
@@ -276,6 +295,7 @@ tas — Thread & Salt automated management accounts
   tas test-email [address]     send a test message to prove mail credentials work
   tas xero-accounts            list the Xero chart of accounts (to fill in accountMap)
   tas doctor                   what's wired up, what's still pending
+  tas preflight                can this environment reach SMTP / Xero? (run in the sandbox)
   tas selftest                 fault-inject the verification loops
   tas xero-selftest            prove the Xero adapter against a local mock (no Xero needed)
 `);

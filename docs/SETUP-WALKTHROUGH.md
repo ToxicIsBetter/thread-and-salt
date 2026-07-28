@@ -102,14 +102,24 @@ rather than on kickoff day.
    ```
    Verify the Thread & Salt reporting pipeline runs in this environment.
 
-   In the cloned repository, run:
+   In the cloned repository, run these three commands and report the output of each:
        npm ci --omit=dev
+       node bin/tas.js preflight
        node bin/tas.js run monthly --as-of 2026-08-03 --dryrun
 
-   Then report: whether npm ci completed, whether GATE 1 and GATE 2 both passed and with
-   how many checks, which PDF file was produced, and the final outcome line. If anything
-   failed, paste the error verbatim. Do not edit any figures.
+   Report specifically:
+   - whether npm ci completed (it builds a native module for the charts)
+   - whether preflight could reach smtp.gmail.com on port 587 — quote the exact line
+   - whether GATE 1 and GATE 2 both passed, and with how many checks
+   - which PDF was produced, and the final outcome line
+   If anything failed, paste the error verbatim. Do not edit any figures.
    ```
+
+   **The preflight line is the one to read first.** Delivery goes out over raw SMTP on port
+   587, and a sandbox that only permits HTTPS would block it — everything else would still
+   look healthy while no email could ever be sent. If port 587 is blocked, delivery has to
+   move to an HTTPS-based sender (the Gmail API, or a service like Resend/SendGrid) before
+   go-live. Better to learn that here than on the 3rd of the month.
 3. **Run now.**
 
 **Expected:** `GATE 1 ✓ pass (36/36)`, `GATE 2 ✓ pass (17/17, 59 figures)`, `✓ DELIVERED`, and a
