@@ -36,6 +36,7 @@ function applyEnvOverrides(cfg) {
   if (E.TAS_DRIVE_PROVIDER) cfg.deliver.drive.provider = E.TAS_DRIVE_PROVIDER;
   if (E.TAS_DRIVE_LOCAL_PATH) cfg.deliver.drive.localPath = E.TAS_DRIVE_LOCAL_PATH;
   if (E.TAS_DATA_PROVIDER) cfg.dataSource.provider = E.TAS_DATA_PROVIDER;
+  if (E.TAS_BUSINESS_NAME) cfg.business.name = E.TAS_BUSINESS_NAME;
   cfg._envOverrides = Object.keys(E).filter((k) => /^TAS_(EMAIL_PROVIDER|SENDER|RECIPIENTS|DRIVE_|DATA_PROVIDER)/.test(k));
 }
 

@@ -183,6 +183,7 @@ async function pull(cfg, win, escalation = 1) {
     provenance: {
       kind: 'xero',
       tenantId: creds.tenantId,
+      tenantName: cfg.dataSource.xero.tenantName || null,
       basis: cfg.dataSource.xero.reportBasis,
       note: 'Pulled live from the Xero Profit & Loss report; totals reconcile to Xero by construction.',
     },

@@ -206,7 +206,26 @@ function verifyNumbers(model, cleaned, cfg) {
   );
 
   // ---------- 6. regression fixtures (known-good history) ----------
-  for (const [key, expect] of Object.entries(cfg.verify.fixtures)) {
+  // These assert the Thread & Salt history specifically. If the figures come from a
+  // different organisation's books they are meaningless, so they are skipped — but the skip
+  // is recorded as a named check with its reason, because a safety check that quietly
+  // disappears is worse than one that fails.
+  const expectedTenant = cfg.verify.fixturesTenantId || null;
+  const tenantNow = (cleaned.provenance && cleaned.provenance.tenantId) || null;
+  const fixturesApply =
+    cleaned.source === 'fixture' || (!!expectedTenant && expectedTenant === tenantNow);
+  if (!fixturesApply) {
+    checks.push(
+      check(
+        'fixture:skipped',
+        true,
+        `history fixtures not applied — source is "${cleaned.source}"` +
+          (tenantNow ? ` (tenant ${tenantNow})` : '') +
+          ', which is not the Thread & Salt history. Set verify.fixturesTenantId to re-enable.'
+      )
+    );
+  }
+  for (const [key, expect] of Object.entries(fixturesApply ? cfg.verify.fixtures : {})) {
     const col = model.annualCols.find((c) => c.key.replace(/[^A-Z0-9]/gi, '').toUpperCase() === key.toUpperCase());
     if (!col) continue;
     const revOk = Math.abs(col.revenuePence - expect.revenue * 100) <= 100;

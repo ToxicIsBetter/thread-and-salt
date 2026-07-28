@@ -81,7 +81,18 @@ async function run(opts = {}) {
   const outOfTime = () => Date.now() - startedAt > wallClockMs;
 
   log(quiet, `\n▶ ${cfg.business.name} — ${cadence} pack for ${win.label}`);
-  log(quiet, `  source: ${cfg.dataSource.provider}   format: ${format}   delivery: ${mode}   run: ${runId}`);
+  const srcOrg = cfg.dataSource.provider === 'xero'
+    ? (cfg.dataSource.xero.tenantName || cfg.dataSource.xero.tenantId || 'unknown org')
+    : 'client workbook';
+  log(quiet, `  source: ${cfg.dataSource.provider} (${srcOrg})   format: ${format}   delivery: ${mode}   run: ${runId}`);
+
+  // Loud warning when the books being reported on are not the business the pack is named
+  // after — this is the configuration that would email one company's P&L to another.
+  if (cfg.dataSource.provider === 'xero' && cfg.dataSource.xero.tenantName &&
+      !cfg.dataSource.xero.tenantName.toLowerCase().includes(cfg.business.name.toLowerCase().split(' ')[0])) {
+    log(quiet, `  ⚠  MISMATCH: pack is titled "${cfg.business.name}" but the figures come from "${cfg.dataSource.xero.tenantName}".`);
+    log(quiet, `     Do not send this to a client. Set TAS_BUSINESS_NAME, or point dataSource at the right organisation.`);
+  }
 
   // ---- grain guard: weekly needs daily data (only Xero has it) ----
   if (!grainSufficient(cfg, win)) {

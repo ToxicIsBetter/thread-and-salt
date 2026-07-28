@@ -209,8 +209,16 @@ async function main() {
       for (const c of conns) console.log(`  ${c.tenantName}  [${c.tenantType}]\n    ${c.tenantId}`);
       if (conns.length === 1) {
         cfg.dataSource.xero.tenantId = conns[0].tenantId;
+        cfg.dataSource.xero.tenantName = conns[0].tenantName;
         cfgLib.save(cfg);
-        console.log(`\n✓ Saved tenantId for "${conns[0].tenantName}" to src/config.json`);
+        console.log(`\n✓ Saved tenantId + name for "${conns[0].tenantName}" to src/config.json`);
+        const biz = cfg.business.name.toLowerCase().split(' ')[0];
+        if (!String(conns[0].tenantName).toLowerCase().includes(biz)) {
+          console.log(`\n⚠  These books belong to "${conns[0].tenantName}", but packs are titled "${cfg.business.name}".`);
+          console.log('   Useful for proving the live Xero path, but any pack produced from it contains');
+          console.log(`   ${conns[0].tenantName}'s figures — do not send it to a client. Run with`);
+          console.log(`   TAS_BUSINESS_NAME="${conns[0].tenantName}" so the document is labelled honestly.`);
+        }
         console.log('  Next:  node bin/tas.js xero-accounts     (list the chart of accounts)');
       } else {
         console.log('\nMore than one organisation — set dataSource.xero.tenantId manually to the right one.');
