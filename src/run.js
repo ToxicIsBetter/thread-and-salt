@@ -31,6 +31,7 @@ const OUTCOME = {
   DELIVERED: 'DELIVERED',
   FAILED_NUMBERS: 'FAILED_NUMBERS',
   FAILED_RENDER: 'FAILED_RENDER',
+  FAILED_DELIVERY: 'FAILED_DELIVERY',
   SKIPPED_NO_GRAIN: 'SKIPPED_NO_GRAIN',
   SKIPPED_NO_DATA: 'SKIPPED_NO_DATA',
   ERROR: 'ERROR',
@@ -193,10 +194,33 @@ async function run(opts = {}) {
         }
 
         // ---------- both gates green: deliver ----------
+        // Delivery is deliberately OUTSIDE the render-retry logic. A mail server being
+        // unreachable is not a rendering fault: re-rendering the same bytes cannot fix it,
+        // and reporting it as FAILED_RENDER sends whoever is debugging in the wrong direction.
         const receipts = [];
         if (deliverEnabled) {
-          receipts.push(await sendReport({ cfg, model, signals, file: result.file, mode, outDir: outRoot }));
-          receipts.push(await saveReport({ cfg, model, file: result.file, mode, outDir: outRoot }));
+          const attempts = 2;
+          for (let d = 1; d <= attempts; d++) {
+            try {
+              receipts.length = 0;
+              receipts.push(await sendReport({ cfg, model, signals, file: result.file, mode, outDir: outRoot }));
+              receipts.push(await saveReport({ cfg, model, file: result.file, mode, outDir: outRoot }));
+              break;
+            } catch (e) {
+              const rec = { pass, loop: 'D', stage: 'deliver', attempt: d, error: e.message, code: e.code };
+              journal.attempts.push(rec);
+              history.push({ ...rec, pass: false, outcome: 'DELIVERY_ERROR' });
+              writeJournal();
+              log(quiet, `  delivery attempt ${d}/${attempts} failed: ${e.message}`);
+              if (d === attempts) {
+                return await bail(
+                  OUTCOME.FAILED_DELIVERY,
+                  `The report was generated and verified, but could not be delivered: ${e.message}`
+                );
+              }
+              await new Promise((r) => setTimeout(r, 3000 * d));
+            }
+          }
         }
         const finalFile = path.join(outRoot, path.basename(result.file));
         fs.copyFileSync(result.file, finalFile);

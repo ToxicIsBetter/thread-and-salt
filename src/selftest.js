@@ -145,6 +145,29 @@ async function selftest() {
   assert('an alert was written for us', fs.existsSync(path.join(forced.outDir, 'ALERT.txt')));
   assert('the journal records every attempt', fs.existsSync(path.join(forced.outDir, 'verification.json')));
 
+  // ---------- delivery failures must not masquerade as render failures ----------
+  console.log('\ndelivery failure diagnosis');
+  const deadHost = process.env.TAS_SMTP_HOST, deadPort = process.env.TAS_SMTP_PORT;
+  process.env.TAS_SMTP_HOST = '127.0.0.1';
+  process.env.TAS_SMTP_PORT = '1'; // refuses instantly
+  let dead;
+  try {
+    dead = await run({ cadence: 'monthly', asOf: AS_OF, deliver: true, mode: 'live', quiet: true, outRoot: path.join(tmp, 'dead') });
+  } finally {
+    if (deadHost === undefined) delete process.env.TAS_SMTP_HOST; else process.env.TAS_SMTP_HOST = deadHost;
+    if (deadPort === undefined) delete process.env.TAS_SMTP_PORT; else process.env.TAS_SMTP_PORT = deadPort;
+  }
+  const dAttempts = dead.journal.attempts.filter((a) => a.loop === 'D');
+  const bAttemptsDead = dead.journal.attempts.filter((a) => a.loop === 'B');
+  assert('an unreachable mail server reports FAILED_DELIVERY, not FAILED_RENDER',
+    dead.outcome === 'FAILED_DELIVERY', dead.outcome);
+  assert('it does not re-render a document that was already verified',
+    bAttemptsDead.length === 1, `${bAttemptsDead.length} render attempt(s)`);
+  assert('delivery is retried on its own', dAttempts.length === 2, `${dAttempts.length} delivery attempts`);
+  assert('the failure names the real cause',
+    /ECONNREFUSED|could not be delivered/i.test(dead.reason || ''), (dead.reason || '').slice(0, 60));
+  assert('an alert was written', fs.existsSync(path.join(dead.outDir, 'ALERT.txt')));
+
   // ---------- weekly grain guard ----------
   console.log('\ngrain guard');
   const weekly = await run({ cadence: 'weekly', asOf: AS_OF, deliver: true, mode: 'dryrun', quiet: true, outRoot: path.join(tmp, 'weekly') });

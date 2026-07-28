@@ -44,7 +44,11 @@
       "Bash(node scripts/export-conversation.js)",
       "Bash(npm test *)",
       "Bash(node bin/tas.js preflight)",
-      "Bash(sed -i 's|^TAS_SMTP_PASS=.*|TAS_SMTP_PASS=nqpp wvgg gaaq nlxw|' .env)"
+      "Bash(sed -i 's|^TAS_SMTP_PASS=.*|TAS_SMTP_PASS=nqpp wvgg gaaq nlxw|' .env)",
+      "Bash(TAS_SMTP_PORT=9 timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
+      "Bash(TAS_SMTP_HOST=127.0.0.1 TAS_SMTP_PORT=1 timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
+      "Bash(echo \"real exit code: $?  \\(must be non-zero so the routine flags it\\)\")",
+      "Bash(timeout 120 node bin/tas.js run monthly --as-of 2026-08-03 --live)"
     ]
   }
 }
