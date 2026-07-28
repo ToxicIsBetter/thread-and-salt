@@ -34,7 +34,8 @@
       "Bash(timeout 90 node bin/tas.js test-email)",
       "Bash(timeout 180 node bin/tas.js run monthly --as-of 2026-08-03 --live)",
       "Bash(git add *)",
-      "Bash(git -c 'user.name=Shyam Jagani' -c user.email=shyam.jagani@negativezero.com commit -q -m ' *)"
+      "Bash(git -c 'user.name=Shyam Jagani' -c user.email=shyam.jagani@negativezero.com commit -q -m ' *)",
+      "Bash(GIT_TERMINAL_PROMPT=0 timeout 30 git push origin main)"
     ]
   }
 }
